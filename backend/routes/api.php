@@ -7,26 +7,32 @@ use App\Http\Controllers\ProjectServerController;
 use App\Http\Controllers\RepositoryController;
 use App\Http\Controllers\RepositoryRequestController;
 use App\Http\Controllers\UserController;
+use App\Http\Middleware\CheckActive;
 use Illuminate\Support\Facades\Route;
 
-// Auth
+// Public auth routes
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:api');
-    Route::get('/me', [AuthController::class, 'me'])->middleware('auth:api');
     Route::get('/github/redirect', [AuthController::class, 'githubRedirect']);
     Route::get('/github/callback', [AuthController::class, 'githubCallback']);
 });
 
 // Protected routes
-Route::middleware('auth:api')->group(function () {
+Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
 
-    // Users (admin only)
+    // Auth
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/me', [AuthController::class, 'me']);
+
+    // User permissions
+    Route::get('/users/me/permissions', [UserController::class, 'permissions']);
+
+    // Admin only
     Route::middleware('role:admin')->group(function () {
         Route::get('/users', [UserController::class, 'index']);
-        Route::put('/users/{id}', [UserController::class, 'update']);
-        Route::delete('/users/{id}', [UserController::class, 'destroy']);
+        Route::put('/users/{user}', [UserController::class, 'update']);
+        Route::delete('/users/{user}', [UserController::class, 'destroy']);
     });
 
     // Projects

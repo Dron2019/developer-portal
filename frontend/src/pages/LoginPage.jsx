@@ -1,30 +1,48 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import useAuthStore from '../store/authStore'
-import api from '../api/axios'
+import { login, getGithubRedirectUrl } from '../api/auth'
+
+const schema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+})
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState(null)
   const navigate = useNavigate()
   const { setUser, setToken } = useAuthStore()
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm({
+    resolver: zodResolver(schema),
+  })
+
+  const onSubmit = async (data) => {
     try {
-      const res = await api.post('/auth/login', { email, password })
+      const res = await login(data)
       setToken(res.data.token)
       setUser(res.data.user)
       navigate('/')
-    } catch {
-      setError('Invalid credentials. Please try again.')
+    } catch (err) {
+      const message =
+        err.response?.data?.message || 'Invalid credentials. Please try again.'
+      setError('root', { message })
     }
   }
 
-  const handleGithubLogin = () => {
-    window.location.href = '/api/auth/github/redirect'
+  const handleGithubLogin = async () => {
+    try {
+      const res = await getGithubRedirectUrl()
+      window.location.href = res.data.url
+    } catch {
+      window.location.href = '/api/auth/github/redirect'
+    }
   }
 
   return (
@@ -33,24 +51,25 @@ export default function LoginPage() {
         Developer Portal
       </h2>
 
-      {error && (
+      {errors.root && (
         <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
-          {error}
+          {errors.root.message}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
             Email
           </label>
           <input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
+            {...register('email')}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {errors.email && (
+            <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">
@@ -58,17 +77,21 @@ export default function LoginPage() {
           </label>
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
+            {...register('password')}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {errors.password && (
+            <p className="mt-1 text-xs text-red-600">
+              {errors.password.message}
+            </p>
+          )}
         </div>
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          Sign In
+          {isSubmitting ? 'Signing in...' : 'Sign In'}
         </button>
       </form>
 
@@ -91,6 +114,14 @@ export default function LoginPage() {
           Login with GitHub
         </button>
       </div>
+
+      <p className="mt-6 text-center text-sm text-gray-600">
+        Don&apos;t have an account?{' '}
+        <Link to="/register" className="text-blue-600 hover:underline">
+          Create account
+        </Link>
+      </p>
     </div>
   )
 }
+

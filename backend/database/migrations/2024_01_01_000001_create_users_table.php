@@ -12,12 +12,15 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->string('github_id')->nullable()->unique();
             $table->string('github_token')->nullable();
+            $table->string('github_nickname')->nullable();
+            $table->string('avatar_url')->nullable();
             $table->enum('role', ['admin', 'manager', 'developer', 'guest'])->default('developer');
             $table->boolean('is_active')->default(true);
+            $table->string('two_factor_secret')->nullable();
+            $table->timestamp('two_factor_confirmed_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

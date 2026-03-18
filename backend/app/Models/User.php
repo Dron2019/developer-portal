@@ -5,12 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
-use Tymon\JWTAuth\Contracts\JWTSubject;
+use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'name',
@@ -18,6 +17,8 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'github_id',
         'github_token',
+        'github_nickname',
+        'avatar_url',
         'role',
         'is_active',
     ];
@@ -26,22 +27,39 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'remember_token',
         'github_token',
+        'two_factor_secret',
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_active' => 'boolean',
+        'role' => 'string',
     ];
 
-    public function getJWTIdentifier()
+    public function isAdmin(): bool
     {
-        return $this->getKey();
+        return $this->role === 'admin';
     }
 
-    public function getJWTCustomClaims()
+    public function isManager(): bool
     {
-        return [];
+        return $this->role === 'manager';
+    }
+
+    public function isDeveloper(): bool
+    {
+        return $this->role === 'developer';
+    }
+
+    public function isGuest(): bool
+    {
+        return $this->role === 'guest';
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
     }
 
     public function projects()
