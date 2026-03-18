@@ -3,7 +3,11 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProjectActivityController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectFileController;
+use App\Http\Controllers\ProjectMemberController;
+use App\Http\Controllers\ProjectNoteController;
 use App\Http\Controllers\ProjectServerController;
 use App\Http\Controllers\RepositoryController;
 use App\Http\Controllers\RepositoryRequestController;
@@ -37,14 +41,19 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
     });
 
     // Projects
-    Route::get('/projects', [ProjectController::class, 'index']);
-    Route::post('/projects', [ProjectController::class, 'store']);
-    Route::get('/projects/{id}', [ProjectController::class, 'show']);
-    Route::put('/projects/{id}', [ProjectController::class, 'update']);
-    Route::delete('/projects/{id}', [ProjectController::class, 'destroy']);
-    Route::get('/projects/{id}/servers', [ProjectServerController::class, 'index']);
-    Route::post('/projects/{id}/servers', [ProjectServerController::class, 'store']);
-    Route::get('/projects/{id}/repositories', [RepositoryController::class, 'index']);
+    Route::apiResource('projects', ProjectController::class);
+
+    Route::prefix('projects/{project}')->group(function () {
+        Route::apiResource('members', ProjectMemberController::class)
+            ->except(['show']);
+        Route::apiResource('servers', ProjectServerController::class);
+        Route::get('servers/{server}/password', [ProjectServerController::class, 'showPassword']);
+        Route::apiResource('files', ProjectFileController::class)
+            ->except(['show', 'update']);
+        Route::get('files/{file}/download', [ProjectFileController::class, 'download']);
+        Route::apiResource('notes', ProjectNoteController::class);
+        Route::get('activity', [ProjectActivityController::class, 'index']);
+    });
 
     // Repositories
     Route::get('/repositories', [RepositoryController::class, 'index']);
@@ -68,4 +77,5 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 });
+
 

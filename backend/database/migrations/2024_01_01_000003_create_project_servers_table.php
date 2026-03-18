@@ -12,11 +12,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('project_id')->constrained()->onDelete('cascade');
             $table->string('name');
-            $table->enum('type', ['ssh', 'ftp', 'panel']);
+            $table->enum('type', ['ssh', 'ftp', 'panel', 'other']);
             $table->string('host');
-            $table->string('username');
-            $table->text('password_encrypted')->nullable();
             $table->integer('port')->nullable();
+            $table->string('username')->nullable();
+            $table->text('password_encrypted')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
         });
