@@ -106,11 +106,32 @@ class RepositoryRequestController extends Controller
 
             if ($repositoryRequest->type === 'access' && $repositoryRequest->repository) {
                 $repo = $repositoryRequest->repository;
-                $parts = explode('/', $repo->full_name);
-                $owner = $parts[0] ?? $org;
+                $fullName = $repo->full_name ?? '';
+                $parts = explode('/', $fullName, 2);
+                $owner = (isset($parts[0]) && $parts[0] !== '') ? $parts[0] : $org;
                 $repoName = $parts[1] ?? $repo->name;
-                $username = $repositoryRequest->user->github_nickname ?? $repositoryRequest->user->name;
-                $githubService->addCollaborator($owner, $repoName, $username);
+                $username = $repositoryRequest->user->github_nickname;
+
+                if (empty($username)) {
+                    return response()->json([
+                        'message' => 'Cannot send GitHub invitation: the user has no GitHub username linked to their account.',
+                    ], 422);
+                }
+
+                $result = $githubService->addCollaborator($owner, $repoName, $username);
+
+                if (!$result['success']) {
+                    return response()->json([
+                        'message' => 'Failed to send GitHub collaboration invitation.',
+                        'github_error' => $result['error'],
+                        'github_status' => $result['status'],
+                        'debug' => [
+                            'owner'    => $owner,
+                            'repo'     => $repoName,
+                            'username' => $username,
+                        ],
+                    ], 502);
+                }
             }
 
             if ($repositoryRequest->type === 'create') {

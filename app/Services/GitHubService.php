@@ -71,14 +71,30 @@ class GitHubService
         return $response->successful() ? $response->json() : [];
     }
 
-    public function addCollaborator(string $owner, string $repo, string $username, string $permission = 'pull'): bool
+    public function addCollaborator(string $owner, string $repo, string $username, string $permission = 'pull'): array
     {
         $response = $this->http()
             ->put("{$this->baseUrl}/repos/{$owner}/{$repo}/collaborators/{$username}", [
                 'permission' => $permission,
             ]);
 
-        return $response->successful();
+        if (!$response->successful()) {
+            \Log::error('GitHub addCollaborator failed', [
+                'owner'    => $owner,
+                'repo'     => $repo,
+                'username' => $username,
+                'status'   => $response->status(),
+                'body'     => $response->json(),
+            ]);
+
+            return [
+                'success' => false,
+                'status'  => $response->status(),
+                'error'   => $response->json('message') ?? 'Unknown GitHub API error',
+            ];
+        }
+
+        return ['success' => true];
     }
 
     public function removeCollaborator(string $owner, string $repo, string $username): bool

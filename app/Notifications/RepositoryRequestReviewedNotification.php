@@ -24,19 +24,31 @@ class RepositoryRequestReviewedNotification extends Notification
     {
         $status = $this->repositoryRequest->status;
         $statusText = $status === 'approved' ? 'approved' : 'rejected';
+        $type = $this->repositoryRequest->type;
 
         $mail = (new MailMessage)
             ->subject("Your Repository Request has been {$statusText}")
             ->greeting('Hello!')
             ->line("Your repository request has been **{$statusText}**.");
 
+        if ($status === 'approved' && $type === 'access' && $this->repositoryRequest->repository) {
+            $repoName = $this->repositoryRequest->repository->full_name;
+            $mail->line("You have been invited to collaborate on **{$repoName}**.")
+                 ->line('Please check your GitHub notifications or email to **accept the collaboration invitation** — access will only be granted after you accept it.')
+                 ->action('Accept on GitHub', "https://github.com/{$repoName}/invitations");
+        } elseif ($status === 'approved' && $type === 'create') {
+            $repoName = $this->repositoryRequest->repository_name ?? 'the new repository';
+            $mail->line("The repository **{$repoName}** has been created in the organization.")
+                 ->action('View Request', url('/requests'));
+        } else {
+            $mail->action('View Request', url('/requests'));
+        }
+
         if ($this->repositoryRequest->admin_comment) {
             $mail->line('Admin comment: ' . $this->repositoryRequest->admin_comment);
         }
 
-        return $mail
-            ->action('View Request', url('/requests'))
-            ->line('Thank you for using Developer Portal.');
+        return $mail->line('Thank you for using Developer Portal.');
     }
 
     public function toArray(object $notifiable): array
