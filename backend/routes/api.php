@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectServerController;
 use App\Http\Controllers\RepositoryController;
@@ -47,10 +48,24 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
 
     // Repositories
     Route::get('/repositories', [RepositoryController::class, 'index']);
-    Route::post('/repositories/requests', [RepositoryRequestController::class, 'store']);
-    Route::get('/repositories/requests', [RepositoryRequestController::class, 'index']);
-    Route::put('/repositories/requests/{id}', [RepositoryRequestController::class, 'update']);
+    Route::get('/repositories/{repository}', [RepositoryController::class, 'show']);
+    Route::get('/repositories/{repository}/members', [RepositoryController::class, 'members']);
+    Route::post('/repositories/sync', [RepositoryController::class, 'sync'])
+        ->middleware('role:admin,manager');
+
+    // Repository Requests
+    Route::get('/repository-requests', [RepositoryRequestController::class, 'index']);
+    Route::post('/repository-requests', [RepositoryRequestController::class, 'store']);
+    Route::get('/repository-requests/{repositoryRequest}', [RepositoryRequestController::class, 'show']);
+    Route::put('/repository-requests/{repositoryRequest}', [RepositoryRequestController::class, 'update'])
+        ->middleware('role:admin,manager');
+    Route::delete('/repository-requests/{repositoryRequest}', [RepositoryRequestController::class, 'destroy']);
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
 });
+
