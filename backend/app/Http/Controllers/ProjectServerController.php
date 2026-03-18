@@ -114,11 +114,10 @@ class ProjectServerController extends Controller
         $user = auth()->user();
         abort_unless($server->project_id === $project->id, 404);
 
-        $isAdmin = $user->isAdmin();
         $member = $project->members()->where('users.id', $user->id)->first();
         $isTechLead = $member && $member->pivot->role === 'tech_lead';
 
-        abort_unless($isAdmin || $isTechLead, 403, 'Access denied.');
+        abort_unless($user->isAdmin() || $user->isManager() || $isTechLead, 403, 'Access denied.');
 
         return response()->json(['password' => $server->password_decrypted]);
     }

@@ -66,7 +66,7 @@ class ProjectNoteController extends Controller
         abort_unless($note->project_id === $project->id, 404);
 
         $user = $request->user();
-        abort_unless($user->isAdmin() || $note->author_id === $user->id, 403, 'Access denied.');
+        abort_unless($user->isAdmin() || $user->isManager() || $note->author_id === $user->id, 403, 'Access denied.');
 
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
@@ -91,7 +91,7 @@ class ProjectNoteController extends Controller
         abort_unless($note->project_id === $project->id, 404);
 
         $user = auth()->user();
-        abort_unless($user->isAdmin() || $note->author_id === $user->id, 403, 'Access denied.');
+        abort_unless($user->isAdmin() || $user->isManager() || $note->author_id === $user->id, 403, 'Access denied.');
 
         $project->logActivity('note_deleted', "Note '{$note->title}' was deleted.");
         $note->delete();

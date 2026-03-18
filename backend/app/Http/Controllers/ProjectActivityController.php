@@ -9,6 +9,10 @@ class ProjectActivityController extends Controller
 {
     public function index(Project $project)
     {
+        $user = auth()->user();
+        $isMember = $project->members()->where('users.id', $user->id)->exists();
+        abort_unless($user->isAdmin() || $user->isManager() || $project->owner_id === $user->id || $isMember, 403, 'Access denied.');
+
         $activity = $project->activityLogs()
             ->with('user')
             ->latest()

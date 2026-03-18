@@ -11,6 +11,7 @@ use App\Http\Controllers\ProjectNoteController;
 use App\Http\Controllers\ProjectServerController;
 use App\Http\Controllers\RepositoryController;
 use App\Http\Controllers\RepositoryRequestController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\CheckActive;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +31,9 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
 
+    // Profile (own account)
+    Route::put('/auth/profile', [UserController::class, 'updateProfile']);
+
     // User permissions
     Route::get('/users/me/permissions', [UserController::class, 'permissions']);
 
@@ -38,6 +42,10 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
         Route::get('/users', [UserController::class, 'index']);
         Route::put('/users/{user}', [UserController::class, 'update']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
+
+        // GitHub settings
+        Route::get('/settings/github', [SettingController::class, 'showGithub']);
+        Route::put('/settings/github', [SettingController::class, 'updateGithub']);
     });
 
     // Projects
@@ -61,6 +69,9 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
     Route::get('/repositories/{repository}/members', [RepositoryController::class, 'members']);
     Route::post('/repositories/sync', [RepositoryController::class, 'sync'])
         ->middleware('role:admin,manager');
+
+    // Unlink repository from a project
+    Route::delete('/projects/{project}/repositories/{repository}', [RepositoryController::class, 'unlinkFromProject']);
 
     // Repository Requests
     Route::get('/repository-requests', [RepositoryRequestController::class, 'index']);

@@ -32,8 +32,19 @@ class ProjectFileController extends Controller
         return response()->json(['data' => $files]);
     }
 
+    private function isMember(Project $project): bool
+    {
+        $user = auth()->user();
+        if ($user->isAdmin() || $user->isManager()) {
+            return true;
+        }
+        return $project->members()->where('users.id', $user->id)->exists();
+    }
+
     public function store(Request $request, Project $project)
     {
+        abort_unless($this->isMember($project), 403, 'Access denied.');
+
         $request->validate([
             'file' => 'required|file|max:51200',
             'type' => 'nullable|in:document,specification,protocol,other',
@@ -86,6 +97,7 @@ class ProjectFileController extends Controller
     public function download(Project $project, ProjectFile $file)
     {
         abort_unless($file->project_id === $project->id, 404);
+        abort_unless($this->isMember($project), 403, 'Access denied.');
         abort_unless(Storage::exists($file->path), 404, 'File not found.');
 
         return Storage::download($file->path, $file->original_name);

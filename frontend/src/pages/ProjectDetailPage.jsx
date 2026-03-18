@@ -28,6 +28,7 @@ import {
   updateProjectNote,
   deleteProjectNote,
   getProjectActivity,
+  unlinkProjectRepository,
 } from '../api/projects'
 import ProjectStatusBadge from '../components/ProjectStatusBadge'
 import TechStackChips from '../components/TechStackChips'
@@ -178,6 +179,14 @@ export default function ProjectDetailPage() {
     try {
       await deleteProjectServer(id, serverId)
       fetchServers()
+    } catch {}
+  }
+
+  const handleUnlinkRepo = async (repoId, repoName) => {
+    if (!window.confirm(`Unlink "${repoName}" from this project?`)) return
+    try {
+      await unlinkProjectRepository(id, repoId)
+      setProject(prev => ({ ...prev, repositories: prev.repositories.filter(r => r.id !== repoId) }))
     } catch {}
   }
 
@@ -445,19 +454,28 @@ export default function ProjectDetailPage() {
             <div className="space-y-2">
               {project.repositories.map((repo) => (
                 <div key={repo.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">{repo.full_name || repo.name}</p>
-                    {repo.description && <p className="text-xs text-gray-500">{repo.description}</p>}
+                    {repo.description && <p className="text-xs text-gray-500 truncate">{repo.description}</p>}
                   </div>
-                  {repo.url && (
+                  {repo.html_url && (
                     <a
-                      href={repo.url}
+                      href={repo.html_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="ml-auto text-xs text-blue-600 hover:underline"
+                      className="text-xs text-blue-600 hover:underline shrink-0"
                     >
                       View on GitHub
                     </a>
+                  )}
+                  {canEdit && (
+                    <button
+                      onClick={() => handleUnlinkRepo(repo.id, repo.full_name || repo.name)}
+                      className="p-1 text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                      title="Unlink repository"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
               ))}

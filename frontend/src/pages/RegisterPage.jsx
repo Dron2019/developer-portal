@@ -1,7 +1,9 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { CheckCircleIcon } from '@heroicons/react/24/outline'
 import { register as registerApi } from '../api/auth'
 
 const schema = z
@@ -17,7 +19,7 @@ const schema = z
   })
 
 export default function RegisterPage() {
-  const navigate = useNavigate()
+  const [registered, setRegistered] = useState(false)
 
   const {
     register,
@@ -31,12 +33,33 @@ export default function RegisterPage() {
   const onSubmit = async (data) => {
     try {
       await registerApi(data)
-      navigate('/login')
+      setRegistered(true)
     } catch (err) {
       const message =
         err.response?.data?.message || 'Registration failed. Please try again.'
       setError('root', { message })
     }
+  }
+
+  if (registered) {
+    return (
+      <div className="w-full max-w-md bg-white rounded-lg shadow p-8 text-center">
+        <div className="flex justify-center mb-4">
+          <CheckCircleIcon className="h-14 w-14 text-green-500" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Account created!</h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Your account is <strong>pending admin approval</strong>. You will be able to log in
+          once an administrator activates your account.
+        </p>
+        <Link
+          to="/login"
+          className="inline-block px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+        >
+          Back to Login
+        </Link>
+      </div>
+    )
   }
 
   return (

@@ -21,8 +21,20 @@ class ProjectMemberController extends Controller
         return $member && in_array($member->pivot->role, ['owner', 'manager']);
     }
 
+    private function canViewProject(Project $project): bool
+    {
+        $user = auth()->user();
+        if ($user->isAdmin() || $user->isManager()) {
+            return true;
+        }
+        return $project->members()->where('users.id', $user->id)->exists()
+            || $project->owner_id === $user->id;
+    }
+
     public function index(Project $project)
     {
+        abort_unless($this->canViewProject($project), 403, 'Access denied.');
+
         $members = $project->members()->get()->map(function ($user) {
             return [
                 'id' => $user->id,

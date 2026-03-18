@@ -12,6 +12,8 @@ import ProjectDetailPage from './pages/ProjectDetailPage'
 import RepositoriesPage from './pages/RepositoriesPage'
 import RequestsPage from './pages/RequestsPage'
 import UsersPage from './pages/UsersPage'
+import SettingsPage from './pages/SettingsPage'
+import ProfilePage from './pages/ProfilePage'
 
 export default function App() {
   return (
@@ -39,6 +41,15 @@ export default function App() {
                 </RoleGuard>
               }
             />
+            <Route
+              path="/settings"
+              element={
+                <RoleGuard roles={['admin']} fallback={<Navigate to="/" replace />}>
+                  <SettingsPage />
+                </RoleGuard>
+              }
+            />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
         </Route>
 

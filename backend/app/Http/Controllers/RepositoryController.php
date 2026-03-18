@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\RepositoryResource;
+use App\Models\Project;
 use App\Models\Repository;
 use App\Services\GitHubService;
 use Illuminate\Http\Request;
@@ -61,19 +62,22 @@ class RepositoryController extends Controller
         ]);
     }
 
-    public function members(Repository $repository)
+    public function unlinkFromProject(Project $project, Repository $repository)
     {
-        $members = $repository->members()->get()->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'avatar_url' => $user->avatar_url,
-                'permission' => $user->pivot->permission,
-            ];
-        });
+        $user = auth()->user();
 
-        return response()->json(['data' => $members]);
+        abort_unless($repository->project_id === $project->id, 404);
+
+        $member = $project->members()->where('users.id', $user->id)->first();
+        $isOwner = $member && $member->pivot->role === 'owner';
+        abort_unless($user->isAdmin() || $user->isManager() || $isOwner, 403, 'Access denied.');
+
+        $repository->update(['project_id' => null]);
+
+        $project->logActivity('repository_unlinked', "Repository '{$repository->full_name}' was unlinked.");
+
+        return response()->json(['message' => 'Repository unlinked successfully.']);
     }
 }
+
 

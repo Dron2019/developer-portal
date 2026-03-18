@@ -21,9 +21,8 @@ class AuthController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'developer',
+            'is_active' => false,
         ]);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
 
         AuditLog::create([
             'user_id' => $user->id,
@@ -34,8 +33,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
-            'user' => new UserResource($user),
-            'token' => $token,
+            'message' => 'Registration successful. Your account is pending admin approval.',
         ], 201);
     }
 
