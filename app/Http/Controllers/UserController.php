@@ -79,6 +79,7 @@ class UserController extends Controller
             'current_password'      => ['required_with:password,email', 'string'],
             'password'              => ['sometimes', 'required', 'string', 'min:8', 'confirmed'],
             'github_nickname'       => ['sometimes', 'nullable', 'string', 'max:39', 'regex:/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/'],
+            'email_notifications'   => ['sometimes', 'boolean'],
         ]);
 
         if (isset($validated['password']) || isset($validated['email'])) {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -8,6 +8,7 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
   CodeBracketIcon,
+  BellIcon,
 } from '@heroicons/react/24/outline'
 import useAuthStore from '../store/authStore'
 import api from '../api/axios'
@@ -61,8 +62,11 @@ export default function ProfilePage() {
   const [profileStatus, setProfileStatus] = useState({ type: '', message: '' })
   const [passwordStatus, setPasswordStatus] = useState({ type: '', message: '' })
   const [githubStatus, setGithubStatus] = useState({ type: '', message: '' })
+  const [preferencesStatus, setPreferencesStatus] = useState({ type: '', message: '' })
   const [githubNickname, setGithubNickname] = useState(user?.github_nickname ?? '')
   const [githubSaving, setGithubSaving] = useState(false)
+  const [emailNotifications, setEmailNotifications] = useState(user?.email_notifications ?? true)
+  const [preferencesSaving, setPreferencesSaving] = useState(false)
 
   const profileForm = useForm({
     resolver: zodResolver(profileSchema),
@@ -73,6 +77,14 @@ export default function ProfilePage() {
     resolver: zodResolver(passwordSchema),
     defaultValues: { current_password: '', password: '', password_confirmation: '' },
   })
+
+  // Update local state when user object changes
+  useEffect(() => {
+    if (user) {
+      setEmailNotifications(user.email_notifications ?? true)
+      setGithubNickname(user.github_nickname ?? '')
+    }
+  }, [user])
 
   const onProfileSubmit = async (data) => {
     setProfileStatus({ type: '', message: '' })
@@ -128,6 +140,22 @@ export default function ProfilePage() {
       setGithubStatus({ type: 'error', message: msg })
     } finally {
       setGithubSaving(false)
+    }
+  }
+
+  const onPreferencesSubmit = async (e) => {
+    e.preventDefault()
+    setPreferencesStatus({ type: '', message: '' })
+    setPreferencesSaving(true)
+    try {
+      const res = await api.put('/auth/profile', { email_notifications: emailNotifications })
+      setUser({ ...user, email_notifications: emailNotifications })
+      setPreferencesStatus({ type: 'success', message: 'Preferences updated successfully.' })
+    } catch (err) {
+      const msg = err.response?.data?.message ?? 'Failed to update preferences.'
+      setPreferencesStatus({ type: 'error', message: msg })
+    } finally {
+      setPreferencesSaving(false)
     }
   }
 
@@ -261,6 +289,38 @@ export default function ProfilePage() {
               className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg"
             >
               {passwordForm.formState.isSubmitting ? 'Saving…' : 'Change password'}
+            </button>
+          </div>
+        </form>
+      </Section>
+
+      {/* Notification Preferences */}
+      <Section icon={BellIcon} title="Notification Preferences">
+        <Alert {...preferencesStatus} />
+        <form onSubmit={onPreferencesSubmit} className="space-y-4">
+          <div>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={emailNotifications}
+                onChange={(e) => setEmailNotifications(e.target.checked)}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-700">Email Notifications</span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Receive email notifications for repository requests, approvals, and other important updates
+                </p>
+              </div>
+            </label>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={preferencesSaving}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg"
+            >
+              {preferencesSaving ? 'Saving…' : 'Save Preferences'}
             </button>
           </div>
         </form>

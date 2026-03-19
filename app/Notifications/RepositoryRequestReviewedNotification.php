@@ -17,7 +17,14 @@ class RepositoryRequestReviewedNotification extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database', 'mail'];
+        $channels = ['database'];
+        
+        // Only send email if user has email notifications enabled
+        if ($notifiable->email_notifications) {
+            $channels[] = 'mail';
+        }
+        
+        return $channels;
     }
 
     public function toMail(object $notifiable): MailMessage
