@@ -10,6 +10,9 @@ import {
   DocumentTextIcon,
   LinkIcon,
   ClipboardDocumentListIcon,
+  ClipboardIcon,
+  EyeIcon,
+  EyeSlashIcon,
 } from '@heroicons/react/24/outline'
 import {
   getProject,
@@ -78,6 +81,10 @@ export default function ProjectDetailPage() {
   const [files, setFiles] = useState([])
   const [notes, setNotes] = useState([])
   const [activity, setActivity] = useState([])
+
+  // Server passwords visibility
+  const [serverPasswords, setServerPasswords] = useState({})
+  const [showPasswords, setShowPasswords] = useState({})
 
   // Note editor
   const [editingNote, setEditingNote] = useState(null)
@@ -303,10 +310,88 @@ export default function ProjectDetailPage() {
   const handleShowPassword = async (server) => {
     try {
       const { data } = await getServerPassword(id, server.id)
-      alert(`Password for ${server.name}:\n${data.password ?? '(empty)'}`)
+      setServerPasswords(prev => ({ ...prev, [server.id]: data.password ?? '' }))
     } catch {
       alert('Access denied or no password set.')
     }
+  }
+
+  const copyToClipboard = async (text, label) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      // Simple feedback - you could enhance this with a toast library
+      const button = event.target.closest('button')
+      const originalTitle = button.title
+      button.title = 'Copied!'
+      button.style.color = '#16a34a' // green-600
+      setTimeout(() => {
+        button.title = originalTitle
+        button.style.color = ''
+      }, 1000)
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      
+      // Same feedback for fallback
+      const button = event.target.closest('button')
+      const originalTitle = button.title
+      button.title = 'Copied!'
+      button.style.color = '#16a34a'
+      setTimeout(() => {
+        button.title = originalTitle
+        button.style.color = ''
+      }, 1000)
+    }
+  }
+
+  const togglePasswordVisibility = (serverId) => {
+    setShowPasswords(prev => ({ ...prev, [serverId]: !prev[serverId] }))
+  }
+
+  const CopyableField = ({ label, value, type = 'text', serverId = null }) => {
+    if (!value && value !== 0) return null
+    
+    const displayValue = type === 'password' && serverId && !showPasswords[serverId] 
+      ? '••••••••' 
+      : value
+
+    const isPassword = type === 'password'
+    const passwordValue = isPassword && serverId ? serverPasswords[serverId] : value
+    const copyValue = isPassword ? passwordValue : value
+
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-500 min-w-0 w-16 shrink-0">{label}:</span>
+        <span className="text-sm text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded flex-1 min-w-0 truncate">
+          {displayValue}
+        </span>
+        {isPassword && serverId && (
+          <button
+            onClick={() => togglePasswordVisibility(serverId)}
+            className="text-gray-400 hover:text-gray-600 shrink-0"
+            title={showPasswords[serverId] ? 'Hide password' : 'Show password'}
+          >
+            {showPasswords[serverId] ? (
+              <EyeSlashIcon className="h-4 w-4" />
+            ) : (
+              <EyeIcon className="h-4 w-4" />
+            )}
+          </button>
+        )}
+        <button
+          onClick={() => copyToClipboard(copyValue || '', label)}
+          className="text-gray-400 hover:text-blue-600 shrink-0"
+          title={`Copy ${label.toLowerCase()}`}
+        >
+          <ClipboardIcon className="h-4 w-4" />
+        </button>
+      </div>
+    )
   }
 
   const handleFileUpload = async (e) => {
@@ -631,38 +716,78 @@ export default function ProjectDetailPage() {
               )}
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-4">
             {servers.map((server) => (
-              <div key={server.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <ServerIcon className="h-8 w-8 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{server.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {server.host}{server.port ? `:${server.port}` : ''} — {server.type?.toUpperCase()}
-                      {server.username ? ` (${server.username})` : ''}
-                    </p>
+              <div key={server.id} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                {/* Server Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <ServerIcon className="h-8 w-8 text-gray-400 mt-1" />
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900">{server.name}</h4>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        server.type === 'sftp' ? 'bg-green-100 text-green-800' :
+                        server.type === 'ftps' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {server.type?.toUpperCase() || 'FTP'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {(isAdmin || myRole === 'tech_lead') && (
+                      <button
+                        onClick={() => handleShowPassword(server)}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
+                        title="Load password"
+                      >
+                        <LockClosedIcon className="h-3.5 w-3.5" />
+                        Load Password
+                      </button>
+                    )}
+                    {canManageServers && (
+                      <button
+                        onClick={() => handleDeleteServer(server.id)}
+                        className="text-red-400 hover:text-red-600 p-1"
+                        title="Delete server"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {(isAdmin || myRole === 'tech_lead') && (
-                    <button
-                      onClick={() => handleShowPassword(server)}
-                      className="inline-flex items-center gap-1 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
-                    >
-                      <LockClosedIcon className="h-3.5 w-3.5" />
-                      Password
-                    </button>
-                  )}
-                  {canManageServers && (
-                    <button
-                      onClick={() => handleDeleteServer(server.id)}
-                      className="text-red-400 hover:text-red-600"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
+
+                {/* Server Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <CopyableField label="Host" value={server.host} />
+                  <CopyableField label="Port" value={server.port} />
+                  <CopyableField label="Username" value={server.username} />
+                  {(isAdmin || myRole === 'tech_lead') && serverPasswords[server.id] !== undefined && (
+                    <CopyableField 
+                      label="Password" 
+                      value={serverPasswords[server.id]} 
+                      type="password"
+                      serverId={server.id}
+                    />
                   )}
                 </div>
+
+                {/* Connection String */}
+                {server.host && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <CopyableField 
+                      label="URL" 
+                      value={`${server.type || 'ftp'}://${server.username ? `${server.username}@` : ''}${server.host}${server.port ? `:${server.port}` : ''}`} 
+                    />
+                  </div>
+                )}
+
+                {/* Description */}
+                {server.description && (
+                  <div className="pt-2">
+                    <p className="text-xs text-gray-600">{server.description}</p>
+                  </div>
+                )}
               </div>
             ))}
             {servers.length === 0 && <p className="text-sm text-gray-500">No servers configured.</p>}
