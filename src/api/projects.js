@@ -29,6 +29,7 @@ export const createProjectNote = (projectId, data) => api.post(`/projects/${proj
 export const updateProjectNote = (projectId, noteId, data) => api.put(`/projects/${projectId}/notes/${noteId}`, data)
 export const deleteProjectNote = (projectId, noteId) => api.delete(`/projects/${projectId}/notes/${noteId}`)
 
+export const linkProjectRepository = (projectId, repoId) => api.post(`/projects/${projectId}/repositories/${repoId}`)
 export const unlinkProjectRepository = (projectId, repoId) => api.delete(`/projects/${projectId}/repositories/${repoId}`)
 
 export const getProjectActivity = (projectId) => api.get(`/projects/${projectId}/activity`)

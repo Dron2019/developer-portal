@@ -31,7 +31,12 @@ class RepositoryController extends Controller
         }
 
         if ($request->filled('project_id')) {
-            $query->where('project_id', $request->integer('project_id'));
+            $projectId = $request->input('project_id');
+            if ($projectId === 'null' || $projectId === 'unlinked') {
+                $query->whereNull('project_id');
+            } else {
+                $query->where('project_id', $request->integer('project_id'));
+            }
         }
 
         $repositories = $query->latest()->paginate(20);
@@ -121,6 +126,32 @@ class RepositoryController extends Controller
         $repository->delete();
 
         return response()->json(['message' => 'Repository removed from local database.']);
+    }
+
+    public function linkToProject(Project $project, Repository $repository)
+    {
+        $user = auth()->user();
+
+        // Check if repository is already linked to this project
+        if ($repository->project_id === $project->id) {
+            return response()->json(['message' => 'Repository is already linked to this project.'], 400);
+        }
+
+        // Check if repository is linked to another project
+        if ($repository->project_id !== null) {
+            return response()->json(['message' => 'Repository is already linked to another project.'], 400);
+        }
+
+        // Check permissions - same as unlink
+        $member = $project->members()->where('users.id', $user->id)->first();
+        $isOwner = $member && $member->pivot->role === 'owner';
+        abort_unless($user->isAdmin() || $user->isManager() || $isOwner, 403, 'Access denied.');
+
+        $repository->update(['project_id' => $project->id]);
+
+        $project->logActivity('repository_linked', "Repository '{$repository->full_name}' was linked.");
+
+        return response()->json(['message' => 'Repository linked successfully.']);
     }
 
     public function unlinkFromProject(Project $project, Repository $repository)

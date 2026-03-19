@@ -28,6 +28,7 @@ import {
   updateProjectNote,
   deleteProjectNote,
   getProjectActivity,
+  linkProjectRepository,
   unlinkProjectRepository,
 } from '../api/projects'
 import ProjectStatusBadge from '../components/ProjectStatusBadge'
@@ -36,6 +37,7 @@ import ActivityTimeline from '../components/ActivityTimeline'
 import EditProjectModal from '../components/modals/EditProjectModal'
 import AddMemberModal from '../components/modals/AddMemberModal'
 import AddServerModal from '../components/modals/AddServerModal'
+import LinkRepositoryModal from '../components/modals/LinkRepositoryModal'
 import useAuthStore from '../store/authStore'
 
 const TABS = ['Overview', 'Team', 'Repositories', 'Servers', 'Files', 'Notes', 'Activity']
@@ -68,6 +70,7 @@ export default function ProjectDetailPage() {
   const [showEdit, setShowEdit] = useState(false)
   const [showAddMember, setShowAddMember] = useState(false)
   const [showAddServer, setShowAddServer] = useState(false)
+  const [showLinkRepo, setShowLinkRepo] = useState(false)
 
   // Tab data
   const [members, setMembers] = useState([])
@@ -188,6 +191,12 @@ export default function ProjectDetailPage() {
       await unlinkProjectRepository(id, repoId)
       setProject(prev => ({ ...prev, repositories: prev.repositories.filter(r => r.id !== repoId) }))
     } catch {}
+  }
+
+  const handleRepoLinked = () => {
+    // Refetch the project to get updated repositories
+    fetchProject()
+    setShowLinkRepo(false)
   }
 
   const handleShowPassword = async (server) => {
@@ -449,6 +458,15 @@ export default function ProjectDetailPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-700">Linked Repositories</h3>
+            {canEdit && (
+              <button
+                onClick={() => setShowLinkRepo(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Link Repository
+              </button>
+            )}
           </div>
           {project.repositories && project.repositories.length > 0 ? (
             <div className="space-y-2">
@@ -702,6 +720,14 @@ export default function ProjectDetailPage() {
           projectId={id}
           onClose={() => setShowAddServer(false)}
           onAdded={fetchServers}
+        />
+      )}
+
+      {showLinkRepo && (
+        <LinkRepositoryModal
+          projectId={id}
+          onClose={() => setShowLinkRepo(false)}
+          onLinked={handleRepoLinked}
         />
       )}
     </div>
