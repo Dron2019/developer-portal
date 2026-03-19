@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Dialog } from '@headlessui/react'
 import { XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { linkProjectRepository } from '../../api/projects'
@@ -7,40 +7,95 @@ import { getRepositories } from '../../api/repositories'
 export default function LinkRepositoryModal({ projectId, onClose, onLinked }) {
   const [query, setQuery] = useState('')
   const [repositories, setRepositories] = useState([])
-  const [filteredRepos, setFilteredRepos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searching, setSearching] = useState(false)
   const [selectedRepo, setSelectedRepo] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(1)
+  const [loadingMore, setLoadingMore] = useState(false)
+  
+  const searchTimeoutRef = useRef(null)
 
-  useEffect(() => {
-    fetchAvailableRepos()
+  // Debounced search function
+  const debouncedSearch = useCallback((searchQuery) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+    
+    searchTimeoutRef.current = setTimeout(() => {
+      fetchRepositories(searchQuery, 1, true) // Reset to page 1 for new search
+    }, 300)
   }, [])
 
   useEffect(() => {
-    // Filter repositories based on query
-    if (!query.trim()) {
-      setFilteredRepos(repositories)
-    } else {
-      const filtered = repositories.filter((repo) =>
-        repo.name.toLowerCase().includes(query.toLowerCase()) ||
-        repo.full_name.toLowerCase().includes(query.toLowerCase()) ||
-        (repo.description && repo.description.toLowerCase().includes(query.toLowerCase()))
-      )
-      setFilteredRepos(filtered)
-    }
-  }, [query, repositories])
+    fetchRepositories('', 1, true) // Initial load
+  }, [])
 
-  const fetchAvailableRepos = async () => {
-    setLoading(true)
+  useEffect(() => {
+    if (query.trim()) {
+      setSearching(true)
+      debouncedSearch(query.trim())
+    } else {
+      // If query is empty, reset to initial state
+      setSearching(true)
+      debouncedSearch('')
+    }
+    
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [query, debouncedSearch])
+
+  const fetchRepositories = async (searchQuery = '', pageNum = 1, reset = false) => {
+    const isInitialOrSearch = reset || pageNum === 1
+    
+    if (isInitialOrSearch) {
+      setLoading(true)
+    } else {
+      setLoadingMore(true)
+    }
+    
     try {
-      const { data } = await getRepositories({ project_id: 'null' }) // Get repositories not linked to any project
-      setRepositories(data.data || [])
-      setFilteredRepos(data.data || [])
+      const params = { 
+        project_id: 'null', // Get repositories not linked to any project
+        page: pageNum
+      }
+      
+      if (searchQuery) {
+        params.search = searchQuery
+      }
+      
+      const { data } = await getRepositories(params)
+      const newRepos = data.data || []
+      
+      if (reset || pageNum === 1) {
+        setRepositories(newRepos)
+        setPage(1)
+      } else {
+        setRepositories(prev => [...prev, ...newRepos])
+      }
+      
+      // Check if there are more pages (Laravel pagination)
+      setHasMore(data.current_page < data.last_page)
+      setPage(pageNum)
+      setError('')
+      
     } catch (err) {
       setError('Failed to load repositories.')
     } finally {
       setLoading(false)
+      setLoadingMore(false)
+      setSearching(false)
+    }
+  }
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchRepositories(query.trim(), page + 1, false)
     }
   }
 
@@ -84,8 +139,13 @@ export default function LinkRepositoryModal({ projectId, onClose, onLinked }) {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search by name or description..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                {searching && (
+                  <div className="absolute right-3 top-2.5">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-r-transparent" />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -96,51 +156,70 @@ export default function LinkRepositoryModal({ projectId, onClose, onLinked }) {
                   <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]" />
                   <p className="mt-2 text-sm text-gray-500">Loading repositories...</p>
                 </div>
-              ) : filteredRepos.length === 0 ? (
+              ) : repositories.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-sm text-gray-500">
-                    {repositories.length === 0 
-                      ? 'No available repositories to link.'
-                      : 'No repositories match your search.'
+                    {query.trim() 
+                      ? `No repositories found matching "${query}".`
+                      : 'No available repositories to link.'
                     }
                   </p>
                 </div>
               ) : (
-                filteredRepos.map((repo) => (
-                  <label key={repo.id} className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="repository"
-                      value={repo.id}
-                      checked={selectedRepo?.id === repo.id}
-                      onChange={() => setSelectedRepo(repo)}
-                      className="mt-1 text-blue-600 focus:ring-blue-500"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-sm font-medium text-gray-900">{repo.full_name || repo.name}</h4>
-                        {repo.private && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Private
-                          </span>
+                <>
+                  {repositories.map((repo) => (
+                    <label key={repo.id} className="flex items-start gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="repository"
+                        value={repo.id}
+                        checked={selectedRepo?.id === repo.id}
+                        onChange={() => setSelectedRepo(repo)}
+                        className="mt-1 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-medium text-gray-900">{repo.full_name || repo.name}</h4>
+                          {repo.private && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              Private
+                            </span>
+                          )}
+                          {repo.language && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {repo.language}
+                            </span>
+                          )}
+                        </div>
+                        {repo.description && (
+                          <p className="text-sm text-gray-600 mb-2">{repo.description}</p>
                         )}
-                        {repo.language && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {repo.language}
-                          </span>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span>⭐ {repo.stars_count || 0}</span>
+                          <span>🍴 {repo.forks_count || 0}</span>
+                          {repo.open_issues_count > 0 && <span>🐛 {repo.open_issues_count}</span>}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                  
+                  {/* Load More Button */}
+                  {hasMore && !searching && (
+                    <div className="text-center py-4">
+                      <button
+                        type="button"
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                      >
+                        {loadingMore && (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-r-transparent" />
                         )}
-                      </div>
-                      {repo.description && (
-                        <p className="text-sm text-gray-600 mb-2">{repo.description}</p>
-                      )}
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>⭐ {repo.stars_count || 0}</span>
-                        <span>🍴 {repo.forks_count || 0}</span>
-                        {repo.open_issues_count > 0 && <span>🐛 {repo.open_issues_count}</span>}
-                      </div>
+                        {loadingMore ? 'Loading...' : 'Load More Repositories'}
+                      </button>
                     </div>
-                  </label>
-                ))
+                  )}
+                </>
               )}
             </div>
 
