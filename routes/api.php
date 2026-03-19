@@ -56,6 +56,7 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
 
         // Repository collaborators (GitHub)
         Route::delete('/repositories/{repository}/collaborators/{username}', [RepositoryController::class, 'removeCollaborator']);
+        Route::get('/repositories/{repository}/commits/count', [RepositoryController::class, 'commitCount']);
     });
 
     // Projects

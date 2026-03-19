@@ -78,6 +78,21 @@ class RepositoryController extends Controller
         return response()->json($collaborators);
     }
 
+    public function commitCount(Repository $repository)
+    {
+        abort_unless(auth()->user()->isAdmin(), 403, 'Access denied.');
+
+        if (!$repository->full_name) {
+            return response()->json(['count' => 0]);
+        }
+
+        [$owner, $repo] = explode('/', $repository->full_name, 2);
+
+        $count = (new GitHubService())->getCommitCount($owner, $repo);
+
+        return response()->json(['count' => $count]);
+    }
+
     public function removeCollaborator(Repository $repository, string $username)
     {
         abort_unless(auth()->user()->isAdmin(), 403, 'Access denied.');

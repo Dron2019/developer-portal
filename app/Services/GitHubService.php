@@ -127,6 +127,25 @@ class GitHubService
         return $response->successful() ? $response->json() : [];
     }
 
+    public function getCommitCount(string $owner, string $repo): int
+    {
+        $response = $this->http()
+            ->get("{$this->baseUrl}/repos/{$owner}/{$repo}/commits", ['per_page' => 1]);
+
+        if (!$response->successful()) {
+            return 0;
+        }
+
+        $link = $response->header('Link');
+
+        if ($link && preg_match('/[&?]page=(\d+)>;\s*rel="last"/', $link, $m)) {
+            return (int) $m[1];
+        }
+
+        // No Link header = single page; count items directly
+        return count($response->json());
+    }
+
     public function removeCollaborator(string $owner, string $repo, string $username): bool
     {
         $response = $this->http()

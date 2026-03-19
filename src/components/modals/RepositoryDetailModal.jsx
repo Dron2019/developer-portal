@@ -5,7 +5,7 @@ import {
   ArrowTopRightOnSquareIcon,
   UserMinusIcon,
 } from '@heroicons/react/24/outline'
-import { getRepositoryMembers, removeRepositoryCollaborator } from '../../api/repositories'
+import { getRepositoryMembers, removeRepositoryCollaborator, getRepositoryCommitCount } from '../../api/repositories'
 
 const permissionLabel = (collab) => {
   if (collab.role_name) return collab.role_name
@@ -34,6 +34,7 @@ export default function RepositoryDetailModal({ repository, isOpen, onClose }) {
   const [confirmRemove, setConfirmRemove] = useState(null)
   const [removing, setRemoving] = useState(null)
   const [removeError, setRemoveError] = useState(null)
+  const [commitCount, setCommitCount] = useState(null)
 
   useEffect(() => {
     if (!isOpen || !repository) return
@@ -41,11 +42,15 @@ export default function RepositoryDetailModal({ repository, isOpen, onClose }) {
     setCollabError(null)
     setConfirmRemove(null)
     setRemoveError(null)
+    setCommitCount(null)
     setLoadingCollabs(true)
     getRepositoryMembers(repository.id)
       .then((res) => setCollaborators(res.data))
       .catch(() => setCollabError('Failed to load collaborators.'))
       .finally(() => setLoadingCollabs(false))
+    getRepositoryCommitCount(repository.id)
+      .then((res) => setCommitCount(res.data.count))
+      .catch(() => setCommitCount('—'))
   }, [isOpen, repository])
 
   const handleRemove = async (username) => {
@@ -123,6 +128,7 @@ export default function RepositoryDetailModal({ repository, isOpen, onClose }) {
               { label: 'Forks',          value: repository.forks_count ?? 0 },
               { label: 'Open Issues',    value: repository.open_issues_count ?? 0 },
               { label: 'Last Synced',    value: lastSynced },
+              { label: 'Commits',        value: commitCount === null ? '…' : commitCount },
             ].map(({ label, value }) => (
               <div key={label} className="bg-gray-50 rounded-lg px-4 py-3">
                 <p className="text-xs text-gray-500 mb-0.5">{label}</p>
