@@ -31,28 +31,50 @@ class GitHubService
         return $client;
     }
 
+    private function fetchAllPages(string $url, array $params = []): array
+    {
+        $results = [];
+        $page    = 1;
+
+        do {
+            $response = $this->http()->get($url, array_merge($params, ['per_page' => 100, 'page' => $page]));
+
+            if (!$response->successful()) {
+                \Log::error('GitHubService fetchAllPages failed', [
+                    'url'    => $url,
+                    'page'   => $page,
+                    'status' => $response->status(),
+                    'body'   => $response->json(),
+                ]);
+                break;
+            }
+
+            $batch = $response->json();
+
+            if (empty($batch)) {
+                break;
+            }
+
+            $results = array_merge($results, $batch);
+            $page++;
+        } while (count($batch) === 100);
+
+        return $results;
+    }
+
     public function getOrganizationRepos(string $org): array
     {
-        $response = $this->http()
-            ->get("{$this->baseUrl}/orgs/{$org}/repos", ['per_page' => 100]);
-
-        return $response->successful() ? $response->json() : [];
+        return $this->fetchAllPages("{$this->baseUrl}/orgs/{$org}/repos", ['type' => 'all']);
     }
 
     public function getUserRepos(string $username): array
     {
-        $response = $this->http()
-            ->get("{$this->baseUrl}/users/{$username}/repos", ['per_page' => 100]);
-
-        return $response->successful() ? $response->json() : [];
+        return $this->fetchAllPages("{$this->baseUrl}/users/{$username}/repos");
     }
 
     public function getAuthenticatedUserRepos(): array
     {
-        $response = $this->http()
-            ->get("{$this->baseUrl}/user/repos", ['per_page' => 100, 'visibility' => 'all']);
-
-        return $response->successful() ? $response->json() : [];
+        return $this->fetchAllPages("{$this->baseUrl}/user/repos", ['visibility' => 'all']);
     }
 
     public function createRepository(string $name, string $description, bool $private, string $org = null): array
@@ -121,7 +143,7 @@ class GitHubService
         return $response->successful() ? $response->json() : [];
     }
 
-    public function syncRepositories(): void
+    public function syncRepositories(): array
     {
         $org = Setting::get('github_org') ?? env('GITHUB_ORG');
 
@@ -129,8 +151,14 @@ class GitHubService
             ? $this->getOrganizationRepos($org)
             : $this->getAuthenticatedUserRepos();
 
+        $fetched = count($repos);
+        $created = 0;
+        $updated = 0;
+
+        \Log::info('GitHubService syncRepositories', ['source' => $org ?? '(authenticated user)', 'fetched' => $fetched]);
+
         foreach ($repos as $repo) {
-            Repository::updateOrCreate(
+            $result = Repository::updateOrCreate(
                 ['github_id' => $repo['id']],
                 [
                     'name' => $repo['name'],
@@ -147,6 +175,18 @@ class GitHubService
                     'last_synced_at' => now(),
                 ]
             );
+
+            if ($result->wasRecentlyCreated) {
+                $created++;
+            } else {
+                $updated++;
+            }
         }
+
+        return [
+            'fetched' => $fetched,
+            'created' => $created,
+            'updated' => $updated,
+        ];
     }
 }

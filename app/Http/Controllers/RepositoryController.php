@@ -48,17 +48,18 @@ class RepositoryController extends Controller
 
     public function sync()
     {
-        $before = Repository::count();
-
         $service = new GitHubService();
-        $service->syncRepositories();
+        $result  = $service->syncRepositories();
 
-        $after = Repository::count();
+        $message = $result['fetched'] === 0
+            ? 'No repositories returned from GitHub. Check your token and organisation settings.'
+            : "Sync complete: {$result['created']} new, {$result['updated']} updated (fetched {$result['fetched']} from GitHub).";
 
         return response()->json([
-            'message' => 'Repositories synced successfully.',
-            'synced' => $after - $before,
-            'total' => $after,
+            'message' => $message,
+            'fetched' => $result['fetched'],
+            'created' => $result['created'],
+            'updated' => $result['updated'],
         ]);
     }
 

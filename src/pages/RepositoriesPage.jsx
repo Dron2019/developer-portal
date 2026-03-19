@@ -84,8 +84,8 @@ export default function RepositoriesPage() {
       const res = await syncRepositories()
       showToast(res.data.message)
       fetchRepositories()
-    } catch {
-      showToast('Sync failed.', 'error')
+    } catch (err) {
+      showToast(err.response?.data?.message ?? 'Sync failed.', 'error')
     } finally {
       setSyncing(false)
     }
