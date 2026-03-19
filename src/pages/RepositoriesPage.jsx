@@ -3,6 +3,7 @@ import { MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { getRepositories, syncRepositories, deleteRepository } from '../api/repositories'
 import RepositoryCard from '../components/RepositoryCard'
 import RequestAccessModal from '../components/modals/RequestAccessModal'
+import RepositoryDetailModal from '../components/modals/RepositoryDetailModal'
 import useAuthStore from '../store/authStore'
 
 function SkeletonCard() {
@@ -30,7 +31,9 @@ export default function RepositoriesPage() {
 
   const canSync = user?.role === 'admin' || user?.role === 'manager'
   const canDelete = user?.role === 'admin' || user?.role === 'manager'
+  const canViewDetails = user?.role === 'admin'
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [detailRepo, setDetailRepo] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
   const handleDelete = async () => {
@@ -151,6 +154,8 @@ export default function RepositoriesPage() {
               onRequestAccess={setSelectedRepo}
               onDelete={setDeleteTarget}
               canDelete={canDelete}
+              onDetails={setDetailRepo}
+              canViewDetails={canViewDetails}
             />
           ))}
         </div>
@@ -183,6 +188,12 @@ export default function RepositoriesPage() {
         isOpen={!!selectedRepo}
         onClose={() => setSelectedRepo(null)}
         onSuccess={(msg) => showToast(msg)}
+      />
+
+      <RepositoryDetailModal
+        repository={detailRepo}
+        isOpen={!!detailRepo}
+        onClose={() => setDetailRepo(null)}
       />
 
       {deleteTarget && (

@@ -53,6 +53,9 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
         Route::get('/settings/webhook', [SettingController::class, 'showWebhook']);
         Route::put('/settings/webhook', [SettingController::class, 'updateWebhook']);
         Route::post('/settings/webhook/test', [SettingController::class, 'testWebhook']);
+
+        // Repository collaborators (GitHub)
+        Route::delete('/repositories/{repository}/collaborators/{username}', [RepositoryController::class, 'removeCollaborator']);
     });
 
     // Projects

@@ -1,4 +1,4 @@
-import { StarIcon, CodeBracketIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { StarIcon, CodeBracketIcon, TrashIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 
 const languageColors = {
   JavaScript: 'bg-yellow-100 text-yellow-800',
@@ -11,7 +11,7 @@ const languageColors = {
   'C#': 'bg-indigo-100 text-indigo-800',
 }
 
-export default function RepositoryCard({ repository, onRequestAccess, onDelete, canDelete }) {
+export default function RepositoryCard({ repository, onRequestAccess, onDelete, canDelete, onDetails, canViewDetails }) {
   const langClass = languageColors[repository.language] ?? 'bg-gray-100 text-gray-700'
 
   return (
@@ -56,6 +56,16 @@ export default function RepositoryCard({ repository, onRequestAccess, onDelete, 
       </div>
 
       <div className="mt-auto pt-2 flex gap-2">
+        {canViewDetails && (
+          <button
+            onClick={() => onDetails(repository)}
+            className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors font-medium"
+            title="View details"
+          >
+            <InformationCircleIcon className="h-4 w-4" />
+            Details
+          </button>
+        )}
         <button
           onClick={() => onRequestAccess(repository)}
           className="flex-1 text-sm px-3 py-1.5 rounded-md border border-blue-500 text-blue-600 hover:bg-blue-50 transition-colors font-medium"

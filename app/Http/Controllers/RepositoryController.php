@@ -62,6 +62,40 @@ class RepositoryController extends Controller
         ]);
     }
 
+    public function members(Repository $repository)
+    {
+        abort_unless(auth()->user()->isAdmin(), 403, 'Access denied.');
+
+        if (!$repository->full_name) {
+            return response()->json([]);
+        }
+
+        [$owner, $repo] = explode('/', $repository->full_name, 2);
+
+        $collaborators = (new GitHubService())->getCollaborators($owner, $repo);
+
+        return response()->json($collaborators);
+    }
+
+    public function removeCollaborator(Repository $repository, string $username)
+    {
+        abort_unless(auth()->user()->isAdmin(), 403, 'Access denied.');
+
+        if (!$repository->full_name) {
+            return response()->json(['message' => 'Repository has no full_name.'], 422);
+        }
+
+        [$owner, $repo] = explode('/', $repository->full_name, 2);
+
+        $success = (new GitHubService())->removeCollaborator($owner, $repo, $username);
+
+        if (!$success) {
+            return response()->json(['message' => 'Failed to remove collaborator from GitHub.'], 502);
+        }
+
+        return response()->json(['message' => 'Collaborator removed successfully.']);
+    }
+
     public function destroy(Repository $repository)
     {
         $user = auth()->user();

@@ -97,6 +97,14 @@ class GitHubService
         return ['success' => true];
     }
 
+    public function getCollaborators(string $owner, string $repo): array
+    {
+        $response = $this->http()
+            ->get("{$this->baseUrl}/repos/{$owner}/{$repo}/collaborators", ['per_page' => 100]);
+
+        return $response->successful() ? $response->json() : [];
+    }
+
     public function removeCollaborator(string $owner, string $repo, string $username): bool
     {
         $response = $this->http()
