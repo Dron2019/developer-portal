@@ -18,6 +18,13 @@
 /public/storage
 /storage/*.key
 /storage/pail
+
+# Storage framework (auto-generated files)
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+
 /vendor
 Homestead.json
 Homestead.yaml
@@ -27,16 +34,9 @@ yarn-debug.log*
 /dist
 yarn-error.log*
 
-# OS files
-.DS_Store
-Thumbs.db
+# PHP
+coverage/
 
-# IDE
-.idea/
-.vscode/
+# OS files (macOS/Windows)
 *.swp
 *.swo
-
-# PHP
-.phpunit.result.cache
-coverage/
