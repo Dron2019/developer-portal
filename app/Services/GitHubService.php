@@ -94,7 +94,7 @@ class GitHubService
         return $response->successful() ? $response->json() : [];
     }
 
-    public function addCollaborator(string $owner, string $repo, string $username, string $permission = 'pull'): array
+    public function addCollaborator(string $owner, string $repo, string $username, string $permission = 'push'): array
     {
         $response = $this->http()
             ->put("{$this->baseUrl}/repos/{$owner}/{$repo}/collaborators/{$username}", [
