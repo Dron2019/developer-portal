@@ -48,6 +48,11 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
         // GitHub settings
         Route::get('/settings/github', [SettingController::class, 'showGithub']);
         Route::put('/settings/github', [SettingController::class, 'updateGithub']);
+
+        // Webhook settings
+        Route::get('/settings/webhook', [SettingController::class, 'showWebhook']);
+        Route::put('/settings/webhook', [SettingController::class, 'updateWebhook']);
+        Route::post('/settings/webhook/test', [SettingController::class, 'testWebhook']);
     });
 
     // Projects

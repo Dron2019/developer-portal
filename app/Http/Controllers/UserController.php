@@ -35,6 +35,7 @@ class UserController extends Controller
             'email'                 => ['sometimes', 'required', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'current_password'      => ['required_with:password,email', 'string'],
             'password'              => ['sometimes', 'required', 'string', 'min:8', 'confirmed'],
+            'github_nickname'       => ['sometimes', 'nullable', 'string', 'max:39', 'regex:/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/'],
         ]);
 
         if (isset($validated['password']) || isset($validated['email'])) {

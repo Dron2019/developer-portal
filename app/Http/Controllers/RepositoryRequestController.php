@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Notifications\NewRepositoryRequestNotification;
 use App\Notifications\RepositoryRequestReviewedNotification;
 use App\Services\GitHubService;
+use App\Services\WebhookService;
 use Illuminate\Http\Request;
 
 class RepositoryRequestController extends Controller
@@ -72,6 +73,10 @@ class RepositoryRequestController extends Controller
         foreach ($admins as $admin) {
             $admin->notify(new NewRepositoryRequestNotification($repositoryRequest));
         }
+
+        (new WebhookService())->sendRepositoryRequestCreated(
+            $repositoryRequest->load(['user', 'repository'])
+        );
 
         return new RepositoryRequestResource($repositoryRequest->load(['user', 'repository', 'reviewer']));
     }

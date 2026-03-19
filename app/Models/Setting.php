@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 class Setting extends Model
 {
@@ -22,7 +24,15 @@ class Setting extends Model
         }
 
         if ($setting->is_encrypted && $setting->value !== null) {
-            return Crypt::decryptString($setting->value);
+            try {
+                return Crypt::decryptString($setting->value);
+            } catch (DecryptException) {
+                // Encrypted value is no longer readable (APP_KEY changed or value corrupted).
+                // Clear the stale value so the user can re-enter it.
+                Log::warning("Setting [{$key}] could not be decrypted — stored value cleared. Re-save the value in Settings.");
+                $setting->update(['value' => null]);
+                return $default;
+            }
         }
 
         return $setting->value;

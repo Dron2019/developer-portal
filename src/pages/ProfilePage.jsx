@@ -7,6 +7,7 @@ import {
   KeyIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
+  CodeBracketIcon,
 } from '@heroicons/react/24/outline'
 import useAuthStore from '../store/authStore'
 import api from '../api/axios'
@@ -59,6 +60,9 @@ export default function ProfilePage() {
 
   const [profileStatus, setProfileStatus] = useState({ type: '', message: '' })
   const [passwordStatus, setPasswordStatus] = useState({ type: '', message: '' })
+  const [githubStatus, setGithubStatus] = useState({ type: '', message: '' })
+  const [githubNickname, setGithubNickname] = useState(user?.github_nickname ?? '')
+  const [githubSaving, setGithubSaving] = useState(false)
 
   const profileForm = useForm({
     resolver: zodResolver(profileSchema),
@@ -101,6 +105,29 @@ export default function ProfilePage() {
       }
       const msg = err.response?.data?.message ?? 'Failed to change password.'
       setPasswordStatus({ type: 'error', message: msg })
+    }
+  }
+
+  const onGithubSubmit = async (e) => {
+    e.preventDefault()
+    setGithubStatus({ type: '', message: '' })
+    const value = githubNickname.trim().replace(/^@/, '')
+    if (value && !/^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(value)) {
+      setGithubStatus({ type: 'error', message: 'Invalid GitHub username format.' })
+      return
+    }
+    setGithubSaving(true)
+    try {
+      const res = await api.put('/auth/profile', { github_nickname: value || null })
+      setUser({ ...user, github_nickname: res.data.data?.github_nickname ?? (value || null) })
+      setGithubStatus({ type: 'success', message: 'GitHub username saved.' })
+    } catch (err) {
+      const msg = err.response?.data?.errors?.github_nickname?.[0]
+        ?? err.response?.data?.message
+        ?? 'Failed to save GitHub username.'
+      setGithubStatus({ type: 'error', message: msg })
+    } finally {
+      setGithubSaving(false)
     }
   }
 
@@ -234,6 +261,39 @@ export default function ProfilePage() {
               className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg"
             >
               {passwordForm.formState.isSubmitting ? 'Saving…' : 'Change password'}
+            </button>
+          </div>
+        </form>
+      </Section>
+
+      {/* GitHub username */}
+      <Section icon={CodeBracketIcon} title="GitHub Account">
+        <Alert {...githubStatus} />
+        <form onSubmit={onGithubSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">GitHub Username</label>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-sm select-none">@</span>
+              <input
+                type="text"
+                value={githubNickname}
+                onChange={(e) => setGithubNickname(e.target.value)}
+                placeholder="your-github-username"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Required for GitHub collaboration invitations when a repository access request is approved.
+              If you signed in with GitHub OAuth this is set automatically.
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={githubSaving}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg"
+            >
+              {githubSaving ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>
