@@ -110,7 +110,7 @@ class AuthController extends Controller
             ]
         );
 
-        $frontendUrl = env('APP_FRONTEND_URL', env('APP_URL', 'http://localhost:3000'));
+        $frontendUrl = env('APP_FRONTEND_URL', env('APP_URL', 'https://dev-portal.smarto.com.ua'));
         $resetLink = rtrim($frontendUrl, '/') . '/reset-password?token=' . $token . '&email=' . urlencode($request->email);
 
         Log::info('Password reset link for ' . $request->email . ': ' . $resetLink);
