@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import {
   MagnifyingGlassIcon,
   ChevronLeftIcon,
@@ -8,6 +7,7 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline'
 import api from '../api/axios'
+import UserDetailModal from '../components/modals/UserDetailModal'
 
 const ROLES = ['admin', 'manager', 'developer', 'guest']
 const FILTERS = ['all', 'pending']
@@ -28,6 +28,7 @@ export default function UsersPage() {
   const [pendingCount, setPendingCount] = useState(0)
   const [loading, setLoading]         = useState(true)
   const [saving, setSaving]           = useState(null) // user id being saved
+  const [detailUserId, setDetailUserId] = useState(null)
 
   const fetchUsers = async (p = page) => {
     setLoading(true)
@@ -148,16 +149,19 @@ export default function UsersPage() {
               </tr>
             ) : users.map(user => (
               <tr key={user.id} className={`hover:bg-gray-50 transition-colors ${!user.is_active ? 'bg-amber-50' : ''}`}>
-                <td className="px-6 py-4">
+        <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     {user.avatar_url
                       ? <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover" />
                       : <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium text-gray-600">{user.name?.[0]}</div>
                     }
                     <div>
-                      <Link to={`/users/${user.id}`} className="text-sm font-medium text-gray-900 hover:text-blue-600">
+                      <button
+                        onClick={() => setDetailUserId(user.id)}
+                        className="text-sm font-medium text-gray-900 hover:text-blue-600 text-left"
+                      >
                         {user.name}
-                      </Link>
+                      </button>
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                   </div>
@@ -195,12 +199,12 @@ export default function UsersPage() {
                 </td>
 
                 <td className="px-6 py-4 text-right">
-                  <Link
-                    to={`/users/${user.id}`}
+                  <button
+                    onClick={() => setDetailUserId(user.id)}
                     className="text-xs text-blue-600 hover:underline"
                   >
                     View
-                  </Link>
+                  </button>
                 </td>
               </tr>
             ))}
@@ -230,6 +234,13 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+    </div>
+
+      <UserDetailModal
+        userId={detailUserId}
+        isOpen={!!detailUserId}
+        onClose={() => setDetailUserId(null)}
+      />
     </div>
   )
 }

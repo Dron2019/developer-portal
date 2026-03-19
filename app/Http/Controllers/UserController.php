@@ -14,6 +14,30 @@ class UserController extends Controller
         return UserResource::collection(User::paginate(15));
     }
 
+    public function show(User $user)
+    {
+        $projectCount = $user->projects()->count();
+
+        $recentRequests = \App\Models\RepositoryRequest::with('repository')
+            ->where('user_id', $user->id)
+            ->latest()
+            ->limit(5)
+            ->get(['id', 'type', 'status', 'repository_id', 'repository_name', 'created_at']);
+
+        return response()->json([
+            'data' => array_merge((new UserResource($user))->resolve(), [
+                'project_count'   => $projectCount,
+                'recent_requests' => $recentRequests->map(fn($r) => [
+                    'id'         => $r->id,
+                    'type'       => $r->type,
+                    'status'     => $r->status,
+                    'repo_name'  => $r->repository?->name ?? $r->repository_name ?? '—',
+                    'created_at' => $r->created_at,
+                ]),
+            ]),
+        ]);
+    }
+
     public function search(Request $request)
     {
         $q = trim($request->string('q'));
