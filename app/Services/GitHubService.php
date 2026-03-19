@@ -88,10 +88,60 @@ class GitHubService
                 'name'        => $name,
                 'description' => $description,
                 'private'     => $private,
-                'auto_init'   => true,
+                'auto_init'   => false, // We'll create README manually
             ]);
 
-        return $response->successful() ? $response->json() : [];
+        if ($response->successful()) {
+            $repoData = $response->json();
+            
+            // Create README.md with Git setup instructions
+            $this->createReadmeFile($repoData['owner']['login'], $name, $repoData['clone_url']);
+            
+            return $repoData;
+        }
+
+        return [];
+    }
+
+    public function createReadmeFile(string $owner, string $repo, string $cloneUrl): bool
+    {
+        $readmeContent = $this->generateReadmeContent($repo, $cloneUrl);
+        
+        $response = $this->http()
+            ->put("{$this->baseUrl}/repos/{$owner}/{$repo}/contents/README.md", [
+                'message' => 'Initial commit',
+                'content' => base64_encode($readmeContent),
+            ]);
+
+        return $response->successful();
+    }
+
+    private function generateReadmeContent(string $repoName, string $cloneUrl): string
+    {
+        return "# {$repoName}
+
+## Getting Started
+
+### ...or create a new repository on the command line
+
+```bash
+echo \"# {$repoName}\" >> README.md
+git init
+git add README.md
+git commit -m \"first commit\"
+git branch -M main
+git remote add origin {$cloneUrl}
+git push -u origin main
+```
+
+### ...or push an existing repository from the command line
+
+```bash
+git remote add origin {$cloneUrl}
+git branch -M main
+git push -u origin main
+```
+";
     }
 
     public function addCollaborator(string $owner, string $repo, string $username, string $permission = 'push'): array
