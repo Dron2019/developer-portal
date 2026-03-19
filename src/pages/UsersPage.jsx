@@ -234,7 +234,6 @@ export default function UsersPage() {
           </div>
         )}
       </div>
-    </div>
 
       <UserDetailModal
         userId={detailUserId}
