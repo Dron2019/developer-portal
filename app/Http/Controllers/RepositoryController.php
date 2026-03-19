@@ -62,6 +62,17 @@ class RepositoryController extends Controller
         ]);
     }
 
+    public function destroy(Repository $repository)
+    {
+        $user = auth()->user();
+
+        abort_unless($user->isAdmin() || $user->isManager(), 403, 'Access denied.');
+
+        $repository->delete();
+
+        return response()->json(['message' => 'Repository removed from local database.']);
+    }
+
     public function unlinkFromProject(Project $project, Repository $repository)
     {
         $user = auth()->user();

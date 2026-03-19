@@ -130,7 +130,7 @@ class AuthController extends Controller
             Log::warning('Failed to send password reset email: ' . $e->getMessage());
         }
 
-        return response()->json(['message' => 'If that email address is in our system, we have sent a password reset link.']);
+        return response()->json(['message' => 'If that email address is in our system, we have sent a password reset link...']);
     }
 
     public function resetPassword(ResetPasswordRequest $request)

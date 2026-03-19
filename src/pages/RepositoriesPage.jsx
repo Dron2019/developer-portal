@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { MagnifyingGlassIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
-import { getRepositories, syncRepositories } from '../api/repositories'
+import { getRepositories, syncRepositories, deleteRepository } from '../api/repositories'
 import RepositoryCard from '../components/RepositoryCard'
 import RequestAccessModal from '../components/modals/RequestAccessModal'
 import useAuthStore from '../store/authStore'
@@ -29,6 +29,24 @@ export default function RepositoriesPage() {
   const [toast, setToast] = useState(null)
 
   const canSync = user?.role === 'admin' || user?.role === 'manager'
+  const canDelete = user?.role === 'admin' || user?.role === 'manager'
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteRepository(deleteTarget.id)
+      showToast(`"${deleteTarget.name}" removed from local database.`)
+      setDeleteTarget(null)
+      fetchRepositories()
+    } catch {
+      showToast('Failed to delete repository.', 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -131,6 +149,8 @@ export default function RepositoriesPage() {
               key={repo.id}
               repository={repo}
               onRequestAccess={setSelectedRepo}
+              onDelete={setDeleteTarget}
+              canDelete={canDelete}
             />
           ))}
         </div>
@@ -164,6 +184,34 @@ export default function RepositoriesPage() {
         onClose={() => setSelectedRepo(null)}
         onSuccess={(msg) => showToast(msg)}
       />
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Remove repository?</h2>
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">{deleteTarget.name}</span> will be removed from the local database only.
+              The repository on GitHub will <span className="font-medium">not</span> be deleted.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="px-4 py-2 text-sm rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 text-sm rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {deleting ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

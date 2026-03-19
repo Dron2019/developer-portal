@@ -71,6 +71,8 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
     Route::get('/repositories/{repository}/members', [RepositoryController::class, 'members']);
     Route::post('/repositories/sync', [RepositoryController::class, 'sync'])
         ->middleware('role:admin,manager');
+    Route::delete('/repositories/{repository}', [RepositoryController::class, 'destroy'])
+        ->middleware('role:admin,manager');
 
     // Unlink repository from a project
     Route::delete('/projects/{project}/repositories/{repository}', [RepositoryController::class, 'unlinkFromProject']);

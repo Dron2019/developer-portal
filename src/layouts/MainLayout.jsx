@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Outlet } from 'react-router-dom'
-import { BellIcon } from '@heroicons/react/24/outline'
+import { BellIcon, Bars3Icon } from '@heroicons/react/24/outline'
 import Sidebar from '../components/Sidebar'
 import { getNotifications, markNotificationRead } from '../api/repositories'
 
@@ -8,6 +8,7 @@ export default function MainLayout() {
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [open, setOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const dropdownRef = useRef(null)
 
   const fetchNotifications = async () => {
@@ -46,10 +47,21 @@ export default function MainLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar />
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex justify-end items-center">
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex justify-between items-center shrink-0">
+          {/* Hamburger — mobile only */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            aria-label="Open menu"
+          >
+            <Bars3Icon className="h-6 w-6" />
+          </button>
+          <div className="hidden md:block" /> {/* spacer on desktop */}
+
+          {/* Notification bell */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setOpen((o) => !o)}
@@ -64,7 +76,7 @@ export default function MainLayout() {
             </button>
 
             {open && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+              <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                   <span className="text-sm font-semibold text-gray-700">Notifications</span>
                   {unreadCount > 0 && (
@@ -103,7 +115,7 @@ export default function MainLayout() {
             )}
           </div>
         </header>
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-4 sm:p-6">
           <Outlet />
         </main>
       </div>

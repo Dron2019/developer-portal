@@ -1,4 +1,4 @@
-import { StarIcon, CodeBracketIcon } from '@heroicons/react/24/outline'
+import { StarIcon, CodeBracketIcon, TrashIcon } from '@heroicons/react/24/outline'
 
 const languageColors = {
   JavaScript: 'bg-yellow-100 text-yellow-800',
@@ -11,7 +11,7 @@ const languageColors = {
   'C#': 'bg-indigo-100 text-indigo-800',
 }
 
-export default function RepositoryCard({ repository, onRequestAccess }) {
+export default function RepositoryCard({ repository, onRequestAccess, onDelete, canDelete }) {
   const langClass = languageColors[repository.language] ?? 'bg-gray-100 text-gray-700'
 
   return (
@@ -55,13 +55,22 @@ export default function RepositoryCard({ repository, onRequestAccess }) {
         </span>
       </div>
 
-      <div className="mt-auto pt-2">
+      <div className="mt-auto pt-2 flex gap-2">
         <button
           onClick={() => onRequestAccess(repository)}
-          className="w-full text-sm px-3 py-1.5 rounded-md border border-blue-500 text-blue-600 hover:bg-blue-50 transition-colors font-medium"
+          className="flex-1 text-sm px-3 py-1.5 rounded-md border border-blue-500 text-blue-600 hover:bg-blue-50 transition-colors font-medium"
         >
           Request Access
         </button>
+        {canDelete && (
+          <button
+            onClick={() => onDelete(repository)}
+            className="flex items-center justify-center px-2.5 py-1.5 rounded-md border border-red-300 text-red-500 hover:bg-red-50 transition-colors"
+            title="Remove from local database"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   )

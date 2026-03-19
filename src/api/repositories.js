@@ -3,6 +3,7 @@ import api from './axios'
 export const getRepositories = (params) => api.get('/repositories', { params })
 export const getRepository = (id) => api.get(`/repositories/${id}`)
 export const syncRepositories = () => api.post('/repositories/sync')
+export const deleteRepository = (id) => api.delete(`/repositories/${id}`)
 export const getRepositoryRequests = (params) => api.get('/repository-requests', { params })
 export const createRepositoryRequest = (data) => api.post('/repository-requests', data)
 export const updateRepositoryRequest = (id, data) => api.put(`/repository-requests/${id}`, data)
