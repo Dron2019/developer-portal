@@ -199,6 +199,107 @@ export default function ProjectDetailPage() {
     setShowLinkRepo(false)
   }
 
+  const generateFileZillaXML = (servers, projectName) => {
+    const xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    const root = `<FileZilla3 version="3.67.0" platform="web">`
+    
+    let serversXML = '<Servers>\n'
+    
+    servers.forEach(server => {
+      // Convert password to base64 if it exists
+      const encodedPassword = server.password ? btoa(server.password) : ''
+      
+      // Map server types to FileZilla protocol numbers
+      const protocolMap = {
+        'ftp': '0',
+        'sftp': '1', 
+        'ftps': '4'
+      }
+      
+      const protocol = protocolMap[server.type?.toLowerCase()] || '0'
+      const port = server.port || (server.type?.toLowerCase() === 'sftp' ? '22' : '21')
+      
+      serversXML += `    <Server>
+`
+      serversXML += `        <Host>${server.host || ''}</Host>
+`
+      serversXML += `        <Port>${port}</Port>
+`
+      serversXML += `        <Protocol>${protocol}</Protocol>
+`
+      serversXML += `        <Type>0</Type>
+`
+      serversXML += `        <User>${server.username || ''}</User>
+`
+      serversXML += `        <Pass encoding="base64">${encodedPassword}</Pass>
+`
+      serversXML += `        <Logontype>1</Logontype>
+`
+      serversXML += `        <PasvMode>MODE_DEFAULT</PasvMode>
+`
+      serversXML += `        <EncodingType>Auto</EncodingType>
+`
+      serversXML += `        <BypassProxy>0</BypassProxy>
+`
+      serversXML += `        <Name>${server.name || server.host || 'Unnamed Server'}</Name>
+`
+      serversXML += `        <SyncBrowsing>0</SyncBrowsing>
+`
+      serversXML += `        <DirectoryComparison>0</DirectoryComparison>
+`
+      serversXML += `    </Server>
+`
+    })
+    
+    serversXML += '</Servers>\n'
+    
+    return xmlHeader + root + '\n' + serversXML + '</FileZilla3>'
+  }
+
+  const handleExportFileZilla = async () => {
+    if (servers.length === 0) {
+      alert('No servers to export.')
+      return
+    }
+
+    try {
+      // Get server passwords for export (only if user has permission)
+      const serversWithPasswords = []
+      
+      for (const server of servers) {
+        let serverData = { ...server }
+        
+        // Try to get password if user has access
+        if (isAdmin || myRole === 'tech_lead') {
+          try {
+            const { data } = await getServerPassword(id, server.id)
+            serverData.password = data.password || ''
+          } catch {
+            // If password fetch fails, continue without it
+            serverData.password = ''
+          }
+        }
+        
+        serversWithPasswords.push(serverData)
+      }
+      
+      const xml = generateFileZillaXML(serversWithPasswords, project?.name)
+      const blob = new Blob([xml], { type: 'application/xml' })
+      const url = URL.createObjectURL(blob)
+      
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${project?.name || 'project'}_servers_filezilla.xml`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      alert('Failed to export servers. Please try again.')
+    }
+  }
+
   const handleShowPassword = async (server) => {
     try {
       const { data } = await getServerPassword(id, server.id)
@@ -508,15 +609,27 @@ export default function ProjectDetailPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-700">{servers.length} server{servers.length !== 1 ? 's' : ''}</h3>
-            {canManageServers && (
-              <button
-                onClick={() => setShowAddServer(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <PlusIcon className="h-4 w-4" />
-                Add Server
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {servers.length > 0 && (isAdmin || myRole === 'tech_lead' || canManageServers) && (
+                <button
+                  onClick={handleExportFileZilla}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  title="Export servers to FileZilla XML"
+                >
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                  Export FileZilla
+                </button>
+              )}
+              {canManageServers && (
+                <button
+                  onClick={() => setShowAddServer(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  Add Server
+                </button>
+              )}
+            </div>
           </div>
           <div className="space-y-2">
             {servers.map((server) => (
