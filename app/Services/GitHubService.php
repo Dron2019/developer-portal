@@ -85,9 +85,10 @@ class GitHubService
 
         $response = $this->http()
             ->post($endpoint, [
-                'name' => $name,
+                'name'        => $name,
                 'description' => $description,
-                'private' => $private,
+                'private'     => $private,
+                'auto_init'   => true,
             ]);
 
         return $response->successful() ? $response->json() : [];

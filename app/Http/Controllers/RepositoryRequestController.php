@@ -148,23 +148,34 @@ class RepositoryRequestController extends Controller
                 );
 
                 if (!empty($repoData)) {
-                    Repository::updateOrCreate(
+                    $localRepo = Repository::updateOrCreate(
                         ['github_id' => $repoData['id']],
                         [
-                            'name' => $repoData['name'],
-                            'full_name' => $repoData['full_name'],
-                            'description' => $repoData['description'] ?? null,
-                            'private' => $repoData['private'] ?? false,
-                            'html_url' => $repoData['html_url'],
-                            'clone_url' => $repoData['clone_url'] ?? null,
-                            'default_branch' => $repoData['default_branch'] ?? 'main',
-                            'language' => $repoData['language'] ?? null,
-                            'stars_count' => 0,
-                            'forks_count' => 0,
+                            'name'              => $repoData['name'],
+                            'full_name'         => $repoData['full_name'],
+                            'description'       => $repoData['description'] ?? null,
+                            'private'           => $repoData['private'] ?? false,
+                            'html_url'          => $repoData['html_url'],
+                            'clone_url'         => $repoData['clone_url'] ?? null,
+                            'default_branch'    => $repoData['default_branch'] ?? 'main',
+                            'language'          => $repoData['language'] ?? null,
+                            'stars_count'       => 0,
+                            'forks_count'       => 0,
                             'open_issues_count' => 0,
-                            'last_synced_at' => now(),
+                            'last_synced_at'    => now(),
                         ]
                     );
+
+                    // Link the request to the newly created repository
+                    $repositoryRequest->update(['repository_id' => $localRepo->id]);
+
+                    // Invite the requester as a collaborator on the new repo
+                    $username = $repositoryRequest->user->github_nickname;
+
+                    if (!empty($username)) {
+                        $repoOwner = $org ?? explode('/', $repoData['full_name'])[0];
+                        $githubService->addCollaborator($repoOwner, $repoData['name'], $username);
+                    }
                 }
             }
         }
