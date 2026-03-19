@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -12,6 +12,7 @@ const schema = z.object({
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { setUser, setToken } = useAuthStore()
 
   const {
@@ -51,6 +52,12 @@ export default function LoginPage() {
         Developer Portal
       </h2>
 
+      {location.state?.message && (
+        <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-md text-sm">
+          {location.state.message}
+        </div>
+      )}
+
       {errors.root && (
         <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md text-sm">
           {errors.root.message}
@@ -72,9 +79,14 @@ export default function LoginPage() {
           )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <Link to="/forgot-password" className="text-xs text-blue-600 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <input
             type="password"
             {...register('password')}
