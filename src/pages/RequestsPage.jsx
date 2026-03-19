@@ -161,10 +161,11 @@ export default function RequestsPage() {
                           Review
                         </button>
                       )}
-                      {req.status === 'pending' && req.user?.id === user?.id && (
+                      {(isAdminOrManager || (req.status === 'pending' && req.user?.id === user?.id)) && (
                         <button
                           onClick={() => handleDelete(req.id)}
                           className="text-gray-400 hover:text-red-600"
+                          title="Delete request"
                         >
                           <TrashIcon className="h-4 w-4" />
                         </button>

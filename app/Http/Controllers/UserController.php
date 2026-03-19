@@ -14,6 +14,25 @@ class UserController extends Controller
         return UserResource::collection(User::paginate(15));
     }
 
+    public function search(Request $request)
+    {
+        $q = trim($request->string('q'));
+
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $users = User::where('is_active', true)
+            ->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                      ->orWhere('email', 'like', "%{$q}%");
+            })
+            ->limit(10)
+            ->get(['id', 'name', 'email', 'avatar_url', 'github_nickname', 'role']);
+
+        return response()->json($users);
+    }
+
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([

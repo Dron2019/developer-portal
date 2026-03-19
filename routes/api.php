@@ -39,6 +39,10 @@ Route::middleware(['auth:sanctum', CheckActive::class])->group(function () {
     // User permissions
     Route::get('/users/me/permissions', [UserController::class, 'permissions']);
 
+    // User search (admin + manager — used for adding project members)
+    Route::get('/users/search', [UserController::class, 'search'])
+        ->middleware('role:admin,manager');
+
     // Admin only
     Route::middleware('role:admin')->group(function () {
         Route::get('/users', [UserController::class, 'index']);

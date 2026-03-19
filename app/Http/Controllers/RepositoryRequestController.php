@@ -185,11 +185,13 @@ class RepositoryRequestController extends Controller
     {
         $user = $request->user();
 
-        if ($repositoryRequest->user_id !== $user->id) {
+        $isAdminOrManager = $user->isAdmin() || $user->isManager();
+
+        if (!$isAdminOrManager && $repositoryRequest->user_id !== $user->id) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }
 
-        if ($repositoryRequest->status !== 'pending') {
+        if (!$isAdminOrManager && $repositoryRequest->status !== 'pending') {
             return response()->json(['message' => 'Only pending requests can be deleted.'], 422);
         }
 
